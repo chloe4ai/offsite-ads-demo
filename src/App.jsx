@@ -11,12 +11,12 @@ import Footer from './components/Footer'
 const INITIAL_AMAZON = {
   name: 'Spring Sale — Premium Headphones',
   objective: 'awareness',
-  budget: 12000,
-  bidStrategy: 'auto',
+  budget: 500,
+  bidStrategy: 'fixed',
   productAsin: 'B09V4HXPB5',
-  audience: 'electronics_intenders',
+  audience: 'in_market',
   bidType: 'impression',
-  bidAmount: 5,
+  bidAmount: 4,
   startDate: '2026-05-01',
   endDate: '2026-05-31',
 }
@@ -24,12 +24,12 @@ const INITIAL_AMAZON = {
 const INITIAL_WALMART = {
   name: 'Spring Sale — Multivitamins',
   objective: 'consideration',
-  budget: 8000,
-  bidStrategy: 'target_cpa',
+  budget: 50,
+  bidStrategy: 'fixed',
   productSku: 'SKU-VIT-D30',
   audience: 'health_shopper',
   bidType: 'click',
-  bidAmount: 2.5,
+  bidAmount: 1.5,
   startDate: '2026-05-01',
   endDate: '2026-05-31',
 }
@@ -50,6 +50,7 @@ function App() {
       <main className="max-w-[1400px] mx-auto px-4 sm:px-6 pb-32">
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-8">
           <CampaignBuilder
+            key={platform}
             platform={platform}
             campaign={campaign}
             setCampaign={setCampaign}
@@ -57,7 +58,7 @@ function App() {
           <AdPreview platform={platform} campaign={campaign} />
         </div>
         <div className="mt-8">
-          <PerformanceDashboard platform={platform} />
+          <PerformanceDashboard platform={platform} campaign={campaign} />
         </div>
         <div className="mt-8">
           <PlatformComparison />

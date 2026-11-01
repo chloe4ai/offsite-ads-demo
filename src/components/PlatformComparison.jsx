@@ -1,15 +1,10 @@
 import { motion } from 'framer-motion'
+import PlatformMark from './PlatformMark'
 
 const platforms = [
   {
     id: 'amazon',
     name: 'Amazon DSP',
-    logo: (
-      <svg viewBox="0 0 28 28" className="w-full h-full" fill="none">
-        <path d="M13.6 2.3C7.9 2.3 3.7 6.5 3.7 12.2c0 4.2 2.5 7.9 6.2 9.6 0.3 0.1 0.4-0.1 0.4-0.3v-2.9c-2.1 0.3-2.6-1-2.6-1C7 18.3 6 18 6 18c-0.3-0.8-0.8-1-0.8-1-0.7-0.4 0-0.4 0-0.4 0.8 0.1 1.1 0.8 1.1 0.8 0.6 1.1 1.6 0.8 2 0.6 0.1-0.5 0.3-0.8 0.5-1-1.5-0.2-3.2-0.8-3.2-3.4 0-0.7 0.3-1.4 0.7-1.8-0.1-0.2-0.3-0.8 0.1-1.8 0 0 0.6-0.2 1.9 0.7 0.6-0.2 1.2-0.2 1.8-0.2s1.2 0.1 1.8 0.2c1.3-0.9 1.9-0.7 1.9-0.7 0.4 1 0.2 1.6 0.1 1.8 0.4 0.4 0.7 1.1 0.7 1.8 0 2.7-1.6 3.2-3.2 3.4 0.3 0.2 0.5 0.7 0.5 1.4v2.1c0 0.2 0.1 0.4 0.4 0.3 3.7-1.7 6.2-5.4 6.2-9.6C23.5 6.5 19.3 2.3 13.6 2.3z" fill="#FF9900"/>
-        <path d="M10.2 9.6c-0.5-0.2-1.1-0.2-1.6 0-0.1 0.8-0.1 1.6 0 2.4 0.5 0.2 1.1 0.2 1.6 0 0.1-0.8 0.1-1.6 0-2.4zM13.6 10c-0.5-0.2-1.1-0.2-1.6 0-0.1 0.8-0.1 1.6 0 2.4 0.5 0.2 1.1 0.2 1.6 0 0.1-0.8 0.1-1.6 0-2.4zM17 9.6c-0.5-0.2-1.1-0.2-1.6 0-0.1 0.8-0.1 1.6 0 2.4 0.5 0.2 1.1 0.2 1.6 0 0.1-0.8 0.1-1.6 0-2.4z" fill="#FF9900"/>
-      </svg>
-    ),
     color: '#FF9900',
     pricing: 'CPM from $2.50',
     minBudget: '$10,000/mo minimum',
@@ -22,13 +17,6 @@ const platforms = [
   {
     id: 'walmart',
     name: 'Walmart Connect',
-    logo: (
-      <svg viewBox="0 0 28 28" className="w-full h-full" fill="none">
-        <rect width="28" height="28" rx="4" fill="#004E91"/>
-        <path d="M4 8h20M4 14h20M4 20h20" stroke="white" strokeWidth="2.5"/>
-        <circle cx="14" cy="14" r="5" fill="#FFC220"/>
-      </svg>
-    ),
     color: '#004E91',
     pricing: 'CPM from $3.00',
     minBudget: '$500/month minimum',
@@ -61,7 +49,7 @@ export default function PlatformComparison() {
         </div>
         <div>
           <h2 className="font-display font-700 text-navy-50 text-lg">Platform Comparison</h2>
-          <p className="text-xs text-navy-500">Side-by-side feature breakdown</p>
+          <p className="text-xs text-navy-500">Same seven dimensions, side by side. Let your constraint pick.</p>
         </div>
       </div>
 
@@ -73,9 +61,7 @@ export default function PlatformComparison() {
               {platforms.map((p) => (
                 <th key={p.id} className="text-left py-3 px-4">
                   <div className="flex items-center gap-2">
-                    <div className={`w-6 h-6 rounded-lg ${p.id === 'amazon' ? 'bg-[#FF9900]' : 'bg-[#004E91]'} flex items-center justify-center p-0.5`}>
-                      {p.logo}
-                    </div>
+                    <PlatformMark platform={p.id} size="w-6 h-6 text-xs" />
                     <span className="text-sm font-medium text-navy-200">{p.name}</span>
                   </div>
                 </th>

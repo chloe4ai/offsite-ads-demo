@@ -12,17 +12,17 @@ export default function Hero() {
       <div className="relative max-w-[1400px] mx-auto px-4 sm:px-6 text-center">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 text-amber-400 text-xs font-medium mb-6 animate-fade-up">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          Interactive Product Demo
+          Interactive product prototype · mocked data
         </div>
 
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-700 text-navy-50 tracking-tight leading-[1.1] max-w-[800px] mx-auto mb-6 animate-fade-up" style={{animationDelay: '100ms'}}>
-          Off-Site Advertising
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-700 text-navy-50 tracking-tight leading-[1.1] max-w-[900px] mx-auto mb-6 animate-fade-up" style={{animationDelay: '100ms'}}>
+          A $500 floor and a $10,000 floor
           <br />
-          <span className="text-amber-400">Done Right</span>
+          <span className="text-amber-400">are not the same product</span>
         </h1>
 
         <p className="text-base sm:text-lg text-navy-300 max-w-[560px] mx-auto leading-relaxed mb-10 animate-fade-up" style={{animationDelay: '200ms'}}>
-          Build, preview, and measure sponsored ads campaigns across Amazon DSP and Walmart Connect — from a single interface.
+          Build the same off-site campaign on Amazon DSP and Walmart Connect. The builder enforces each platform's floor and couples objective, bid strategy and bid type, and the delivery panel shows what a bid that does not clear actually costs you.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-up" style={{animationDelay: '300ms'}}>
@@ -43,10 +43,10 @@ export default function Hero() {
 
         <div className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-[600px] mx-auto animate-fade-up" style={{animationDelay: '400ms'}}>
           {[
-            { label: 'Campaign Types', value: '3' },
-            { label: 'Audience Segments', value: '20+' },
-            { label: 'Bid Strategies', value: '5' },
-            { label: 'KPI Metrics', value: '12' },
+            { label: 'Amazon DSP minimum', value: '$10K/mo' },
+            { label: 'Walmart Connect minimum', value: '$500/mo' },
+            { label: 'Bid types, coupled to objective', value: '4' },
+            { label: 'Dimensions compared', value: '7' },
           ].map((stat) => (
             <div key={stat.label} className="text-center p-4 rounded-2xl border border-white/5 bg-white/[0.02]">
               <div className="text-2xl font-display font-700 text-amber-400">{stat.value}</div>

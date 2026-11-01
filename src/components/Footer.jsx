@@ -20,7 +20,7 @@ export default function Footer() {
             <div className="text-xs text-navy-500">
               Built by{' '}
               <a
-                href="https://chloe4ai"
+                href="https://github.com/chloe4ai"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-navy-400 hover:text-amber-400 transition-colors"
@@ -33,7 +33,7 @@ export default function Footer() {
 
           <div className="flex items-center gap-4">
             <a
-              href="https://github.com/chloe4ai"
+              href="https://github.com/chloe4ai/offsite-ads-demo"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-xs text-navy-400 hover:text-navy-200 transition-colors"

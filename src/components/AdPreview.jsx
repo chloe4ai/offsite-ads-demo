@@ -1,4 +1,6 @@
 import { motion } from 'framer-motion'
+import PlatformMark from './PlatformMark'
+import { BID_TYPES } from '../lib/campaignRules'
 
 const amazonAdStyles = [
   {
@@ -68,7 +70,7 @@ export default function AdPreview({ platform, campaign }) {
         </div>
         <div>
           <h2 className="font-display font-700 text-navy-50 text-lg">Ad Preview</h2>
-          <p className="text-xs text-navy-500">Live preview of your ad creative</p>
+          <p className="text-xs text-navy-500">One creative across every placement, before launch</p>
         </div>
       </div>
 
@@ -91,15 +93,7 @@ export default function AdPreview({ platform, campaign }) {
               <div className="w-full max-w-[260px]">
                 <div className="bg-white/10 rounded-lg p-3">
                   <div className="flex items-center gap-2 mb-2">
-                    {platform === 'amazon' ? (
-                      <div className="w-5 h-5 rounded bg-[#FF9900] flex items-center justify-center shrink-0">
-                        <svg viewBox="0 0 20 20" fill="white"><path d="M10 2C5.6 2 2 5.6 2 10s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8zm2.3 11.5c0 .1-.1.2-.3.2H8c-.2 0-.3-.1-.3-.2l.2-2c.1 0 .2-.1.4-.1h.2c.3 0 .5 0 .7.1l.1 2zm1.4-3.5c-.4-.3-1-.4-1.8-.4-1 0-1.7.2-2.2.6-.4.3-.5.7-.5 1 0 .4.2.8.7 1l.4.2c.2 0 .3.1.3.3 0 .2-.2.3-.5.3-.5 0-.9-.2-1.1-.7l-.2-.6h-.7c0 .6.4 1.2 1.4 1.2.6 0 1-.1 1.3-.4.2-.2.4-.6.4-1 0-.4-.1-.7-.7-.9l-.4-.2c-.2 0-.3-.1-.3-.3 0-.2.2-.3.5-.3.3 0 .6.1.8.3l.2.6h.7c-.1-.5-.4-1-1.1-1.1z"/></svg>
-                      </div>
-                    ) : (
-                      <div className="w-5 h-5 rounded bg-[#004E91] flex items-center justify-center shrink-0">
-                        <div className="w-2.5 h-2.5 rounded-full bg-[#FFC220]" />
-                      </div>
-                    )}
+                    <PlatformMark platform={platform} size="w-5 h-5 text-[10px]" />
                     <div className="h-3 flex-1 rounded bg-white/20" style={{ width: `${60 + i * 15}%` }} />
                   </div>
                   <div className="space-y-1.5">
@@ -138,7 +132,7 @@ export default function AdPreview({ platform, campaign }) {
           {platform === 'amazon' ? 'Amazon DSP' : 'Walmart Connect'}
         </span>
         <span className="text-xs font-mono text-navy-300 bg-navy-700 px-2 py-1 rounded-lg border border-white/5">
-          {campaign.bidType.toUpperCase()}
+          {BID_TYPES.find((t) => t.value === campaign.bidType)?.short}
         </span>
         <span className="text-xs font-mono text-navy-300 bg-navy-700 px-2 py-1 rounded-lg border border-white/5">
           ${campaign.budget.toLocaleString()}/day
