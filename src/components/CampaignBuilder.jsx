@@ -72,7 +72,7 @@ export default function CampaignBuilder({ platform, campaign, setCampaign }) {
   const p = PLATFORMS[platform]
 
   const update = (key, value) => {
-    const { campaign: next, adjustments: notes } = reconcile(platform, { ...campaign, [key]: value })
+    const { campaign: next, adjustments: notes } = reconcile(platform, { ...campaign, [key]: value }, campaign)
     setAdjustments(notes)
     setCampaign(next)
   }

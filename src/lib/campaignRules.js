@@ -104,12 +104,22 @@ export const amountLabel = (strategy, bidType) => {
   return strategy === 'auto' ? `Starting ${short} Bid (USD)` : `${short} Bid (USD)`
 }
 
+// What the amount field is denominated in: a ROAS multiple, a target cost per acquisition,
+// or a bid in the bid type's own unit. When this changes, the old number means something else.
+const amountUnit = (c) =>
+  c.bidStrategy === 'target_roas' ? 'roas' : c.bidStrategy === 'target_cpa' ? 'cpa' : c.bidType
+
+const DEFAULT_AMOUNT = { ...DEFAULT_BID, roas: 4, cpa: DEFAULT_BID.conversion }
+
 /**
  * Re-applies the coupling after any change: if the objective no longer allows the strategy,
  * or the strategy no longer allows the bid type, fall back to the first valid option and
- * say what was changed. Returns { campaign, adjustments }.
+ * say what was changed. `previous` is the campaign before the edit: when the edit changes
+ * what the amount is denominated in (a CPA bid becoming a ROAS target, a CPM bid becoming
+ * a CPC bid), the amount is reset to that unit's default rather than carried over.
+ * Returns { campaign, adjustments }.
  */
-export function reconcile(platform, campaign) {
+export function reconcile(platform, campaign, previous = campaign) {
   const adjustments = []
   let next = { ...campaign }
 
@@ -125,11 +135,13 @@ export function reconcile(platform, campaign) {
     const fallback = types[0]
     adjustments.push(`Bid type switched to ${fallback.short}: the previous one does not fit this objective and strategy.`)
     next.bidType = fallback.value
-    next.bidAmount = next.bidStrategy === 'target_roas' ? 4 : DEFAULT_BID[fallback.value]
   }
 
-  if (next.bidStrategy === 'target_roas' && campaign.bidStrategy !== 'target_roas') {
-    next.bidAmount = 4
+  const unit = amountUnit(next)
+  if (unit !== amountUnit(previous) || unit !== amountUnit(campaign)) {
+    next.bidAmount = DEFAULT_AMOUNT[unit]
+    const shown = unit === 'roas' ? `${next.bidAmount}x` : `$${next.bidAmount}`
+    adjustments.push(`${amountLabel(next.bidStrategy, next.bidType)} set to the default ${shown}: the previous amount was in a different unit.`)
   }
 
   return { campaign: next, adjustments }
