@@ -104,12 +104,22 @@ export const amountLabel = (strategy, bidType) => {
   return strategy === 'auto' ? `Starting ${short} Bid (USD)` : `${short} Bid (USD)`
 }
 
+// What the amount field is denominated in: a ROAS multiple, a target cost per acquisition,
+// or a bid in the bid type's own unit. When this changes, the old number means something else.
+const amountUnit = (c) =>
+  c.bidStrategy === 'target_roas' ? 'roas' : c.bidStrategy === 'target_cpa' ? 'cpa' : c.bidType
+
+const DEFAULT_AMOUNT = { ...DEFAULT_BID, roas: 4, cpa: DEFAULT_BID.conversion }
+
 /**
  * Re-applies the coupling after any change: if the objective no longer allows the strategy,
  * or the strategy no longer allows the bid type, fall back to the first valid option and
- * say what was changed. Returns { campaign, adjustments }.
+ * say what was changed. `previous` is the campaign before the edit: when the edit changes
+ * what the amount is denominated in (a CPA bid becoming a ROAS target, a CPM bid becoming
+ * a CPC bid), the amount is reset to that unit's default rather than carried over.
+ * Returns { campaign, adjustments }.
  */
-export function reconcile(platform, campaign) {
+export function reconcile(platform, campaign, previous = campaign) {
   const adjustments = []
   let next = { ...campaign }
 
@@ -125,11 +135,13 @@ export function reconcile(platform, campaign) {
     const fallback = types[0]
     adjustments.push(`Bid type switched to ${fallback.short}: the previous one does not fit this objective and strategy.`)
     next.bidType = fallback.value
-    next.bidAmount = next.bidStrategy === 'target_roas' ? 4 : DEFAULT_BID[fallback.value]
   }
 
-  if (next.bidStrategy === 'target_roas' && campaign.bidStrategy !== 'target_roas') {
-    next.bidAmount = 4
+  const unit = amountUnit(next)
+  if (unit !== amountUnit(previous) || unit !== amountUnit(campaign)) {
+    next.bidAmount = DEFAULT_AMOUNT[unit]
+    const shown = unit === 'roas' ? `${next.bidAmount}x` : `$${next.bidAmount}`
+    adjustments.push(`${amountLabel(next.bidStrategy, next.bidType)} set to the default ${shown}: the previous amount was in a different unit.`)
   }
 
   return { campaign: next, adjustments }
@@ -140,20 +152,39 @@ export const flightDays = (c) => {
   return Number.isFinite(ms) ? Math.max(1, Math.round(ms / 864e5) + 1) : 30
 }
 
-export const monthlyEquivalent = (c) => c.budget * 30
+const isPositive = (x) => Number.isFinite(x) && x > 0
+
+export const MIN_NAME_LENGTH = 4
+
+// Both platforms state their minimum as spend per month, and it is a commitment on what the
+// campaign will spend, not a daily rate. So the test is the flight's total budget
+// (daily budget × flight days) against the minimum for the flight's length:
+//   - a flight of up to 31 days, i.e. one calendar month or less, must commit the full
+//     monthly minimum; a short burst does not get a pro-rated floor;
+//   - a longer flight is pro-rated at one monthly minimum per 31 days, so it must average
+//     the minimum over every month it runs without being held to more than that.
+// $340/day for 3 days ($1,020) fails a $10,000 minimum; $323/day for 31 days ($10,013) passes.
+export const flightSpend = (c) => c.budget * flightDays(c)
+
+export const requiredFlightSpend = (platform, c) =>
+  Math.round(PLATFORMS[platform].monthlyMin * Math.max(1, flightDays(c) / 31))
 
 export function validate(platform, c) {
   const p = PLATFORMS[platform]
-  const monthly = monthlyEquivalent(c)
   const days = flightDays(c)
+  const total = flightSpend(c)
+  const required = requiredFlightSpend(platform, c)
+  const minimum = `${p.name}'s $${p.monthlyMin.toLocaleString()}/month minimum`
   return [
-    { key: 'name', ok: c.name.trim().length > 3, label: 'Campaign name set' },
+    { key: 'name', ok: c.name.trim().length >= MIN_NAME_LENGTH, label: `Campaign name has at least ${MIN_NAME_LENGTH} characters` },
     {
       key: 'budget',
-      ok: monthly >= p.monthlyMin,
-      label: `$${c.budget.toLocaleString()}/day ≈ $${monthly.toLocaleString()}/month vs. ${p.name}'s $${p.monthlyMin.toLocaleString()}/month minimum`,
+      ok: isPositive(c.budget) && total >= required,
+      label: isPositive(c.budget)
+        ? `$${c.budget.toLocaleString()}/day × ${days} days = $${total.toLocaleString()} vs. $${required.toLocaleString()} required by ${minimum}`
+        : `Enter a daily budget above $0 to check it against ${minimum}`,
     },
-    { key: 'amount', ok: c.bidAmount > 0, label: 'Bid amount set' },
+    { key: 'amount', ok: isPositive(c.bidAmount), label: c.bidStrategy === 'target_roas' ? 'ROAS target above 0x' : 'Bid amount above $0' },
     { key: 'dates', ok: new Date(c.endDate) >= new Date(c.startDate), label: `Flight dates valid (${days} days)` },
     { key: 'audience', ok: !!c.audience, label: 'Audience targeting selected' },
   ]
@@ -162,23 +193,40 @@ export function validate(platform, c) {
 // ---- Illustrative delivery model -------------------------------------------------------
 // Converts the bid into an effective CPM, compares it with what the market clears at
 // (floor × 1.4), and turns the gap into a share of auctions won. Target strategies are
-// throttled by how far the target sits from the platform benchmark.
+// throttled by how far the target sits from the platform benchmark. It covers the first
+// week of the flight, or the whole flight when that is shorter, starting on the weekday
+// the flight starts.
 
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const DOW_DEMAND = [0.9, 0.95, 1.0, 1.05, 1.15, 1.0, 0.9]
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x))
 
+export const deliveryWindowDays = (c) => Math.min(7, flightDays(c))
+
+// Index into DOW (Monday = 0) of the flight's first day; Monday if the date is unset.
+const startWeekday = (c) => {
+  const d = new Date(c.startDate)
+  return Number.isFinite(d.getTime()) ? (d.getUTCDay() + 6) % 7 : 0
+}
+
+// A missing, zero, negative or non-numeric amount bids nothing rather than poisoning the maths.
+const usableAmount = (c) => (isPositive(c.bidAmount) ? c.bidAmount : 0)
+
 export function effectiveCpm(platform, c) {
   const p = PLATFORMS[platform]
+  const amount = usableAmount(c)
   if (c.bidStrategy === 'target_roas') return null
-  if (c.bidStrategy === 'target_cpa') return c.bidAmount * p.benchmarkCtr * p.benchmarkCvr * 1000
+  // A target CPA is a cost per acquisition whether the platform bills per click or per
+  // conversion; the billing unit changes what you are invoiced for, not what the auction
+  // bid is worth, so the target converts through CVR and CTR for every bid type.
+  if (c.bidStrategy === 'target_cpa') return amount * p.benchmarkCtr * p.benchmarkCvr * 1000
   switch (c.bidType) {
     case 'click':
-      return c.bidAmount * p.benchmarkCtr * 1000
+      return amount * p.benchmarkCtr * 1000
     case 'conversion':
-      return c.bidAmount * p.benchmarkCtr * p.benchmarkCvr * 1000
+      return amount * p.benchmarkCtr * p.benchmarkCvr * 1000
     default:
-      return c.bidAmount
+      return amount
   }
 }
 
@@ -186,10 +234,17 @@ export function simulateDelivery(platform, c) {
   const p = PLATFORMS[platform]
   const clearing = p.floorCpm * 1.4
   const eCpm = effectiveCpm(platform, c)
+  const budget = isPositive(c.budget) ? c.budget : 0
   let winShare
   let diagnosis
 
-  if (c.bidStrategy === 'target_roas') {
+  if (!isPositive(c.bidAmount) && c.bidStrategy !== 'auto') {
+    winShare = 0
+    diagnosis =
+      c.bidStrategy === 'target_roas'
+        ? 'Without a ROAS target above 0x there is nothing for the platform to bid toward, so nothing delivers.'
+        : 'Without a bid above $0 the campaign does not enter the auction, so nothing delivers.'
+  } else if (c.bidStrategy === 'target_roas') {
     winShare = clamp((p.benchmarkRoas / c.bidAmount) ** 1.5, 0, 1)
     diagnosis =
       winShare < 0.9
@@ -214,15 +269,18 @@ export function simulateDelivery(platform, c) {
   }
 
   const paidCpm = eCpm === null || c.bidStrategy === 'auto' ? clearing : clamp(eCpm, p.floorCpm, clearing * 1.2)
-  const days = DOW.map((day, i) => {
-    const spend = Math.round(c.budget * clamp(winShare * DOW_DEMAND[i], 0, 1))
+  const first = startWeekday(c)
+  const days = Array.from({ length: deliveryWindowDays(c) }, (_, n) => {
+    const i = (first + n) % 7
+    const day = DOW[i]
+    const spend = Math.round(budget * clamp(winShare * DOW_DEMAND[i], 0, 1))
     const impressions = Math.round((spend / paidCpm) * 1000)
     const clicks = Math.round(impressions * p.benchmarkCtr)
-    return { day, budget: c.budget, spend, impressions, clicks }
+    return { day, budget, spend, impressions, clicks }
   })
 
   const totalSpend = days.reduce((s, d) => s + d.spend, 0)
-  const totalBudget = c.budget * days.length
+  const totalBudget = budget * days.length
   return {
     days,
     totalSpend,

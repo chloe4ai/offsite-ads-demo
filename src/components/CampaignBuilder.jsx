@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import {
   PLATFORMS, OBJECTIVES, strategiesFor, bidTypesFor, objectiveWhy, strategyNote,
-  amountLabel, reconcile, validate, monthlyEquivalent,
+  amountLabel, reconcile, validate, flightDays, flightSpend, requiredFlightSpend, MIN_NAME_LENGTH,
 } from '../lib/campaignRules'
 
 const audiences = {
@@ -72,7 +72,7 @@ export default function CampaignBuilder({ platform, campaign, setCampaign }) {
   const p = PLATFORMS[platform]
 
   const update = (key, value) => {
-    const { campaign: next, adjustments: notes } = reconcile(platform, { ...campaign, [key]: value })
+    const { campaign: next, adjustments: notes } = reconcile(platform, { ...campaign, [key]: value }, campaign)
     setAdjustments(notes)
     setCampaign(next)
   }
@@ -98,7 +98,7 @@ export default function CampaignBuilder({ platform, campaign, setCampaign }) {
 
       <div className="space-y-5">
         {/* Campaign Name */}
-        <InputGroup label="Campaign Name" hint="Max 128 characters">
+        <InputGroup label="Campaign Name" hint={`${MIN_NAME_LENGTH}–128 characters`}>
           <div className="relative">
             <input
               type="text"
@@ -127,7 +127,7 @@ export default function CampaignBuilder({ platform, campaign, setCampaign }) {
 
         {/* Two-col: Budget + Bid Strategy */}
         <div className="grid grid-cols-2 gap-4">
-          <InputGroup label="Daily Budget (USD)" hint={`≈ $${monthlyEquivalent(campaign).toLocaleString()}/month · min $${p.monthlyMin.toLocaleString()}/month`}>
+          <InputGroup label="Daily Budget (USD)" hint={`$${flightSpend(campaign).toLocaleString()} over ${flightDays(campaign)} days · needs $${requiredFlightSpend(platform, campaign).toLocaleString()}`}>
             <div className="relative">
               <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-500" />
               <input
