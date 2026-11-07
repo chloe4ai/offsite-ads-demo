@@ -216,6 +216,9 @@ export function effectiveCpm(platform, c) {
   const p = PLATFORMS[platform]
   const amount = usableAmount(c)
   if (c.bidStrategy === 'target_roas') return null
+  // A target CPA is a cost per acquisition whether the platform bills per click or per
+  // conversion; the billing unit changes what you are invoiced for, not what the auction
+  // bid is worth, so the target converts through CVR and CTR for every bid type.
   if (c.bidStrategy === 'target_cpa') return amount * p.benchmarkCtr * p.benchmarkCvr * 1000
   switch (c.bidType) {
     case 'click':
