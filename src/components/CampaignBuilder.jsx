@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import {
   PLATFORMS, OBJECTIVES, strategiesFor, bidTypesFor, objectiveWhy, strategyNote,
-  amountLabel, reconcile, validate, monthlyEquivalent,
+  amountLabel, reconcile, validate, flightDays, flightSpend, requiredFlightSpend,
 } from '../lib/campaignRules'
 
 const audiences = {
@@ -127,7 +127,7 @@ export default function CampaignBuilder({ platform, campaign, setCampaign }) {
 
         {/* Two-col: Budget + Bid Strategy */}
         <div className="grid grid-cols-2 gap-4">
-          <InputGroup label="Daily Budget (USD)" hint={`≈ $${monthlyEquivalent(campaign).toLocaleString()}/month · min $${p.monthlyMin.toLocaleString()}/month`}>
+          <InputGroup label="Daily Budget (USD)" hint={`$${flightSpend(campaign).toLocaleString()} over ${flightDays(campaign)} days · needs $${requiredFlightSpend(platform, campaign).toLocaleString()}`}>
             <div className="relative">
               <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-500" />
               <input

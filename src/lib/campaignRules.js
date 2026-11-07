@@ -152,18 +152,35 @@ export const flightDays = (c) => {
   return Number.isFinite(ms) ? Math.max(1, Math.round(ms / 864e5) + 1) : 30
 }
 
-export const monthlyEquivalent = (c) => c.budget * 30
+const isPositive = (x) => Number.isFinite(x) && x > 0
+
+// Both platforms state their minimum as spend per month, and it is a commitment on what the
+// campaign will spend, not a daily rate. So the test is the flight's total budget
+// (daily budget × flight days) against the minimum for the flight's length:
+//   - a flight of up to 31 days, i.e. one calendar month or less, must commit the full
+//     monthly minimum; a short burst does not get a pro-rated floor;
+//   - a longer flight is pro-rated at one monthly minimum per 31 days, so it must average
+//     the minimum over every month it runs without being held to more than that.
+// $340/day for 3 days ($1,020) fails a $10,000 minimum; $323/day for 31 days ($10,013) passes.
+export const flightSpend = (c) => c.budget * flightDays(c)
+
+export const requiredFlightSpend = (platform, c) =>
+  Math.round(PLATFORMS[platform].monthlyMin * Math.max(1, flightDays(c) / 31))
 
 export function validate(platform, c) {
   const p = PLATFORMS[platform]
-  const monthly = monthlyEquivalent(c)
   const days = flightDays(c)
+  const total = flightSpend(c)
+  const required = requiredFlightSpend(platform, c)
+  const minimum = `${p.name}'s $${p.monthlyMin.toLocaleString()}/month minimum`
   return [
     { key: 'name', ok: c.name.trim().length > 3, label: 'Campaign name set' },
     {
       key: 'budget',
-      ok: monthly >= p.monthlyMin,
-      label: `$${c.budget.toLocaleString()}/day ≈ $${monthly.toLocaleString()}/month vs. ${p.name}'s $${p.monthlyMin.toLocaleString()}/month minimum`,
+      ok: isPositive(c.budget) && total >= required,
+      label: isPositive(c.budget)
+        ? `$${c.budget.toLocaleString()}/day × ${days} days = $${total.toLocaleString()} vs. $${required.toLocaleString()} required by ${minimum}`
+        : `Enter a daily budget above $0 to check it against ${minimum}`,
     },
     { key: 'amount', ok: c.bidAmount > 0, label: 'Bid amount set' },
     { key: 'dates', ok: new Date(c.endDate) >= new Date(c.startDate), label: `Flight dates valid (${days} days)` },
