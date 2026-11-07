@@ -184,7 +184,7 @@ export function validate(platform, c) {
         ? `$${c.budget.toLocaleString()}/day × ${days} days = $${total.toLocaleString()} vs. $${required.toLocaleString()} required by ${minimum}`
         : `Enter a daily budget above $0 to check it against ${minimum}`,
     },
-    { key: 'amount', ok: c.bidAmount > 0, label: 'Bid amount set' },
+    { key: 'amount', ok: isPositive(c.bidAmount), label: c.bidStrategy === 'target_roas' ? 'ROAS target above 0x' : 'Bid amount above $0' },
     { key: 'dates', ok: new Date(c.endDate) >= new Date(c.startDate), label: `Flight dates valid (${days} days)` },
     { key: 'audience', ok: !!c.audience, label: 'Audience targeting selected' },
   ]
@@ -199,17 +199,21 @@ const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const DOW_DEMAND = [0.9, 0.95, 1.0, 1.05, 1.15, 1.0, 0.9]
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x))
 
+// A missing, zero, negative or non-numeric amount bids nothing rather than poisoning the maths.
+const usableAmount = (c) => (isPositive(c.bidAmount) ? c.bidAmount : 0)
+
 export function effectiveCpm(platform, c) {
   const p = PLATFORMS[platform]
+  const amount = usableAmount(c)
   if (c.bidStrategy === 'target_roas') return null
-  if (c.bidStrategy === 'target_cpa') return c.bidAmount * p.benchmarkCtr * p.benchmarkCvr * 1000
+  if (c.bidStrategy === 'target_cpa') return amount * p.benchmarkCtr * p.benchmarkCvr * 1000
   switch (c.bidType) {
     case 'click':
-      return c.bidAmount * p.benchmarkCtr * 1000
+      return amount * p.benchmarkCtr * 1000
     case 'conversion':
-      return c.bidAmount * p.benchmarkCtr * p.benchmarkCvr * 1000
+      return amount * p.benchmarkCtr * p.benchmarkCvr * 1000
     default:
-      return c.bidAmount
+      return amount
   }
 }
 
@@ -217,10 +221,17 @@ export function simulateDelivery(platform, c) {
   const p = PLATFORMS[platform]
   const clearing = p.floorCpm * 1.4
   const eCpm = effectiveCpm(platform, c)
+  const budget = isPositive(c.budget) ? c.budget : 0
   let winShare
   let diagnosis
 
-  if (c.bidStrategy === 'target_roas') {
+  if (!isPositive(c.bidAmount) && c.bidStrategy !== 'auto') {
+    winShare = 0
+    diagnosis =
+      c.bidStrategy === 'target_roas'
+        ? 'Without a ROAS target above 0x there is nothing for the platform to bid toward, so nothing delivers.'
+        : 'Without a bid above $0 the campaign does not enter the auction, so nothing delivers.'
+  } else if (c.bidStrategy === 'target_roas') {
     winShare = clamp((p.benchmarkRoas / c.bidAmount) ** 1.5, 0, 1)
     diagnosis =
       winShare < 0.9
@@ -246,14 +257,14 @@ export function simulateDelivery(platform, c) {
 
   const paidCpm = eCpm === null || c.bidStrategy === 'auto' ? clearing : clamp(eCpm, p.floorCpm, clearing * 1.2)
   const days = DOW.map((day, i) => {
-    const spend = Math.round(c.budget * clamp(winShare * DOW_DEMAND[i], 0, 1))
+    const spend = Math.round(budget * clamp(winShare * DOW_DEMAND[i], 0, 1))
     const impressions = Math.round((spend / paidCpm) * 1000)
     const clicks = Math.round(impressions * p.benchmarkCtr)
-    return { day, budget: c.budget, spend, impressions, clicks }
+    return { day, budget, spend, impressions, clicks }
   })
 
   const totalSpend = days.reduce((s, d) => s + d.spend, 0)
-  const totalBudget = c.budget * days.length
+  const totalBudget = budget * days.length
   return {
     days,
     totalSpend,

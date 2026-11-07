@@ -3,7 +3,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts'
 import { TrendingUp, Eye, MousePointerClick, DollarSign, Gauge, AlertTriangle, CheckCircle2 } from 'lucide-react'
-import { simulateDelivery } from '../lib/campaignRules'
+import { simulateDelivery, validate } from '../lib/campaignRules'
 
 const tooltipStyle = {
   backgroundColor: '#1e2a45',
@@ -31,7 +31,41 @@ function MetricCard({ icon: Icon, label, value, sub, color, subColor = 'text-nav
 
 const compact = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${(n / 1e3).toFixed(1)}K` : `${n}`)
 
+function Heading({ sub }) {
+  return (
+    <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center">
+          <TrendingUp size={18} className="text-emerald-400" />
+        </div>
+        <div>
+          <h2 className="font-display font-700 text-navy-50 text-lg">Projected Delivery</h2>
+          <p className="text-xs text-navy-500">{sub}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function PerformanceDashboard({ campaign, platform }) {
+  const failing = validate(platform, campaign).filter((c) => !c.ok)
+  if (failing.length) {
+    return (
+      <div id="delivery" className="bg-navy-900/60 border border-white/8 rounded-3xl p-6 backdrop-blur-sm">
+        <Heading sub="Illustrative model · shown once the campaign is valid" />
+        <div className="flex gap-3 rounded-2xl border border-white/8 bg-navy-800/40 px-4 py-6 text-sm text-navy-200">
+          <AlertTriangle size={18} className="text-amber-400 shrink-0 mt-0.5" />
+          <div>
+            <div className="font-medium">Fix the inputs above to see projected delivery</div>
+            <ul className="text-xs mt-2 space-y-1 text-navy-400">
+              {failing.map((c) => <li key={c.key}>{c.label}</li>)}
+            </ul>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const sim = simulateDelivery(platform, campaign)
   const data = sim.days
   const ctr = sim.impressions ? (sim.clicks / sim.impressions) * 100 : 0
@@ -40,17 +74,7 @@ export default function PerformanceDashboard({ campaign, platform }) {
 
   return (
     <div id="delivery" className="bg-navy-900/60 border border-white/8 rounded-3xl p-6 backdrop-blur-sm">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center">
-            <TrendingUp size={18} className="text-emerald-400" />
-          </div>
-          <div>
-            <h2 className="font-display font-700 text-navy-50 text-lg">Projected Delivery</h2>
-            <p className="text-xs text-navy-500">First 7 days of this campaign · illustrative model, recomputed as you edit</p>
-          </div>
-        </div>
-      </div>
+      <Heading sub="First 7 days of this campaign · illustrative model, recomputed as you edit" />
 
       {/* Diagnosis */}
       <div className={`mb-6 flex gap-3 rounded-2xl border px-4 py-3 text-sm ${underdelivering ? 'border-rose-500/30 bg-rose-500/10 text-rose-200' : 'border-emerald-500/20 bg-emerald-500/5 text-navy-200'}`}>
