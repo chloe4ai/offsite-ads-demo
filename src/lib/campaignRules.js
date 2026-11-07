@@ -193,11 +193,21 @@ export function validate(platform, c) {
 // ---- Illustrative delivery model -------------------------------------------------------
 // Converts the bid into an effective CPM, compares it with what the market clears at
 // (floor × 1.4), and turns the gap into a share of auctions won. Target strategies are
-// throttled by how far the target sits from the platform benchmark.
+// throttled by how far the target sits from the platform benchmark. It covers the first
+// week of the flight, or the whole flight when that is shorter, starting on the weekday
+// the flight starts.
 
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const DOW_DEMAND = [0.9, 0.95, 1.0, 1.05, 1.15, 1.0, 0.9]
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x))
+
+export const deliveryWindowDays = (c) => Math.min(7, flightDays(c))
+
+// Index into DOW (Monday = 0) of the flight's first day; Monday if the date is unset.
+const startWeekday = (c) => {
+  const d = new Date(c.startDate)
+  return Number.isFinite(d.getTime()) ? (d.getUTCDay() + 6) % 7 : 0
+}
 
 // A missing, zero, negative or non-numeric amount bids nothing rather than poisoning the maths.
 const usableAmount = (c) => (isPositive(c.bidAmount) ? c.bidAmount : 0)
@@ -256,7 +266,10 @@ export function simulateDelivery(platform, c) {
   }
 
   const paidCpm = eCpm === null || c.bidStrategy === 'auto' ? clearing : clamp(eCpm, p.floorCpm, clearing * 1.2)
-  const days = DOW.map((day, i) => {
+  const first = startWeekday(c)
+  const days = Array.from({ length: deliveryWindowDays(c) }, (_, n) => {
+    const i = (first + n) % 7
+    const day = DOW[i]
     const spend = Math.round(budget * clamp(winShare * DOW_DEMAND[i], 0, 1))
     const impressions = Math.round((spend / paidCpm) * 1000)
     const clicks = Math.round(impressions * p.benchmarkCtr)

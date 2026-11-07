@@ -3,7 +3,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts'
 import { TrendingUp, Eye, MousePointerClick, DollarSign, Gauge, AlertTriangle, CheckCircle2 } from 'lucide-react'
-import { simulateDelivery, validate } from '../lib/campaignRules'
+import { simulateDelivery, validate, flightDays } from '../lib/campaignRules'
 
 const tooltipStyle = {
   backgroundColor: '#1e2a45',
@@ -74,7 +74,9 @@ export default function PerformanceDashboard({ campaign, platform }) {
 
   return (
     <div id="delivery" className="bg-navy-900/60 border border-white/8 rounded-3xl p-6 backdrop-blur-sm">
-      <Heading sub="First 7 days of this campaign · illustrative model, recomputed as you edit" />
+      <Heading
+        sub={`${data.length === flightDays(campaign) ? `All ${data.length} days` : `First ${data.length} days`} of this campaign · illustrative model, recomputed as you edit`}
+      />
 
       {/* Diagnosis */}
       <div className={`mb-6 flex gap-3 rounded-2xl border px-4 py-3 text-sm ${underdelivering ? 'border-rose-500/30 bg-rose-500/10 text-rose-200' : 'border-emerald-500/20 bg-emerald-500/5 text-navy-200'}`}>
@@ -103,7 +105,7 @@ export default function PerformanceDashboard({ campaign, platform }) {
           icon={Eye}
           label="Impressions"
           value={compact(sim.impressions)}
-          sub={`${compact(Math.round(sim.impressions / 7))}/day avg`}
+          sub={`${compact(Math.round(sim.impressions / data.length))}/day avg`}
           color="text-blue-400"
         />
         <MetricCard
