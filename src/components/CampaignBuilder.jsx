@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import {
   PLATFORMS, OBJECTIVES, strategiesFor, bidTypesFor, objectiveWhy, strategyNote,
-  amountLabel, reconcile, validate, flightDays, flightSpend, requiredFlightSpend,
+  amountLabel, reconcile, validate, flightDays, flightSpend, requiredFlightSpend, MIN_NAME_LENGTH,
 } from '../lib/campaignRules'
 
 const audiences = {
@@ -98,7 +98,7 @@ export default function CampaignBuilder({ platform, campaign, setCampaign }) {
 
       <div className="space-y-5">
         {/* Campaign Name */}
-        <InputGroup label="Campaign Name" hint="Max 128 characters">
+        <InputGroup label="Campaign Name" hint={`${MIN_NAME_LENGTH}–128 characters`}>
           <div className="relative">
             <input
               type="text"

@@ -154,6 +154,8 @@ export const flightDays = (c) => {
 
 const isPositive = (x) => Number.isFinite(x) && x > 0
 
+export const MIN_NAME_LENGTH = 4
+
 // Both platforms state their minimum as spend per month, and it is a commitment on what the
 // campaign will spend, not a daily rate. So the test is the flight's total budget
 // (daily budget × flight days) against the minimum for the flight's length:
@@ -174,7 +176,7 @@ export function validate(platform, c) {
   const required = requiredFlightSpend(platform, c)
   const minimum = `${p.name}'s $${p.monthlyMin.toLocaleString()}/month minimum`
   return [
-    { key: 'name', ok: c.name.trim().length > 3, label: 'Campaign name set' },
+    { key: 'name', ok: c.name.trim().length >= MIN_NAME_LENGTH, label: `Campaign name has at least ${MIN_NAME_LENGTH} characters` },
     {
       key: 'budget',
       ok: isPositive(c.budget) && total >= required,
